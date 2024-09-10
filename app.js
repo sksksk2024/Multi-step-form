@@ -6,18 +6,21 @@ const switcher = document.querySelector(".switch");
 const addons = document.querySelectorAll(".box");
 const total = document.querySelector(".total b");
 const planPrice = document.querySelector(".plan-price");
-let time;
+
+let time; // To keep track of whether it's yearly or monthly
 let currentStep = 1;
 let currentCircle = 0;
+
 const obj = {
   plan: null,
-  kind: null,
+  kind: null, // true for yearly, false for monthly
   price: null,
 };
 
 steps.forEach((step) => {
   const nextBtn = step.querySelector(".next-stp");
   const prevBtn = step.querySelector(".prev-stp");
+  
   if (prevBtn) {
     prevBtn.addEventListener("click", () => {
       document.querySelector(`.step-${currentStep}`).style.display = "none";
@@ -27,24 +30,29 @@ steps.forEach((step) => {
       currentCircle--;
     });
   }
+
   nextBtn.addEventListener("click", () => {
-    document.querySelector(`.step-${currentStep}`).style.display = "none";
     if (currentStep < 5 && validateForm()) {
+      document.querySelector(`.step-${currentStep}`).style.display = "none";
       currentStep++;
       currentCircle++;
-      setTotal();
+      setTotal(); // Ensure total is updated before moving to the next step
+      document.querySelector(`.step-${currentStep}`).style.display = "flex";
+      circleSteps[currentCircle].classList.add("active");
+      summary(obj); // Update summary with the current selected options
     }
-    document.querySelector(`.step-${currentStep}`).style.display = "flex";
-    circleSteps[currentCircle].classList.add("active");
-    summary(obj);
   });
 });
 
 function summary(obj) {
   const planName = document.querySelector(".plan-name");
-  const planPrice = document.querySelector(".plan-price");
-  planPrice.innerHTML = `${obj.price.innerText}`;
-  planName.innerHTML = `${obj.plan.innerText} (${obj.kind ? "yearly" : "monthly"})`;
+  const planPriceElement = document.querySelector(".plan-price");
+  
+  // Check if obj.price is valid before trying to use it
+  if (obj.price) {
+    planPriceElement.innerHTML = `${obj.price.innerText}`;
+    planName.innerHTML = `${obj.plan.innerText} (${obj.kind ? "yearly" : "monthly"})`;
+  }
 
   const addOns = document.querySelectorAll(".selected-addon .servic-price");
   addOns.forEach(addOn => {
@@ -60,17 +68,16 @@ function summary(obj) {
 
 function validateForm() {
   let valid = true;
-  for (let i = 0; i < formInputs.length; i++) {
-    if (!formInputs[i].value) {
+  formInputs.forEach(input => {
+    if (!input.value) {
       valid = false;
-      formInputs[i].classList.add("err");
-      findLabel(formInputs[i]).nextElementSibling.style.display = "flex";
+      input.classList.add("err");
+      findLabel(input).nextElementSibling.style.display = "flex";
     } else {
-      valid = true;
-      formInputs[i].classList.remove("err");
-      findLabel(formInputs[i]).nextElementSibling.style.display = "none";
+      input.classList.remove("err");
+      findLabel(input).nextElementSibling.style.display = "none";
     }
-  }
+  });
   return valid;
 }
 
@@ -78,7 +85,7 @@ function findLabel(el) {
   const idVal = el.id;
   const labels = document.getElementsByTagName("label");
   for (let i = 0; i < labels.length; i++) {
-    if (labels[i].htmlFor == idVal) return labels[i];
+    if (labels[i].htmlFor === idVal) return labels[i];
   }
 }
 
@@ -94,16 +101,19 @@ plans.forEach((plan) => {
 });
 
 switcher.addEventListener("click", () => {
-  const val = switcher.querySelector("input").checked;
-  if (val) {
+  const isYearly = switcher.querySelector("input").checked;
+  obj.kind = isYearly; // Update the type in obj (yearly or monthly)
+  
+  if (isYearly) {
     document.querySelector(".monthly").classList.remove("sw-active");
     document.querySelector(".yearly").classList.add("sw-active");
   } else {
     document.querySelector(".monthly").classList.add("sw-active");
     document.querySelector(".yearly").classList.remove("sw-active");
   }
-  switchPrice(val);
-  obj.kind = val;
+
+  switchPrice(isYearly);
+  setTotal(); // Recalculate total when the time changes
 });
 
 addons.forEach((addon) => {
@@ -133,53 +143,20 @@ function switchPrice(checked) {
   const prices = document.querySelectorAll(".plan-priced");
   const addOnPrices = document.querySelectorAll(".box .price");
 
-  // Update plan prices
   prices.forEach((price, index) => {
     price.innerHTML = checked
-      ? `$${yearlyPrices[index].toFixed(2)}/yr`
-      : `$${monthlyPrices[index].toFixed(2)}/mo`;
+      ? `$${yearlyPrices[index]}/yr`
+      : `$${monthlyPrices[index]}/mo`;
   });
 
-  // Update add-on prices
   addOnPrices.forEach((price, index) => {
     price.innerHTML = checked
-      ? `+$${addOnYearlyPrices[index].toFixed(2)}/yr`
-      : `+$${addOnMonthlyPrices[index].toFixed(2)}/mo`;
+      ? `+$${addOnYearlyPrices[index]}/yr`
+      : `+$${addOnMonthlyPrices[index]}/mo`;
   });
 
-  setTime(checked); // Update the time (monthly/yearly)
-  setTotal(); // Recalculate and update the total
+  setTime(checked);
 }
-
-// function switchPrice(checked) {
-//   const yearlyPrice = [90, 120, 150];
-//   const monthlyPrice = [9, 12, 15];
-//   const addOnYearlyPrices = [10, 20, 20]; // Prices for add-ons in yearly mode
-//   const addOnMonthlyPrices = [1, 2, 2]; // Prices for add-ons in monthly mode
-
-//   const prices = document.querySelectorAll(".plan-priced");
-//   const addOnPrices = document.querySelectorAll(".box .price"); // Select add-on prices
-  
-//   if (checked) {
-//     prices[0].innerHTML = `$${yearlyPrice[0].toFixed(2)}/yr`;
-//     prices[1].innerHTML = `$${yearlyPrice[1].toFixed(2)}/yr`;
-//     prices[2].innerHTML = `$${yearlyPrice[2].toFixed(2)}/yr`;
-//     setTime(true);
-
-//     addOnPrices.forEach((price, index) => {
-//       price.innerHTML = `+$${addOnYearlyPrices[index].toFixed(2)}/yr`;
-//     });
-//   } else {
-//     prices[0].innerHTML = `$${monthlyPrice[0].toFixed(2)}/mo`;
-//     prices[1].innerHTML = `$${monthlyPrice[1].toFixed(2)}/mo`;
-//     prices[2].innerHTML = `$${monthlyPrice[2].toFixed(2)}/mo`;
-//     setTime(false);
-
-//     addOnPrices.forEach((price, index) => {
-//       price.innerHTML = `+$${addOnMonthlyPrices[index].toFixed(2)}/mo`;
-//     });
-//   }
-// }
 
 function showAddon(ad, val) {
   const temp = document.getElementsByTagName("template")[0];
@@ -187,6 +164,7 @@ function showAddon(ad, val) {
   const serviceName = clone.querySelector(".service-name");
   const servicePrice = clone.querySelector(".servic-price");
   const serviceID = clone.querySelector(".selected-addon");
+
   if (ad && val) {
     serviceName.innerText = ad.querySelector("label").innerText;
     servicePrice.innerText = ad.querySelector(".price").innerText;
@@ -196,7 +174,7 @@ function showAddon(ad, val) {
     const addons = document.querySelectorAll(".selected-addon");
     addons.forEach((addon) => {
       const attr = addon.getAttribute("data-id");
-      if (attr == ad) {
+      if (attr === ad) {
         addon.remove();
       }
     });
@@ -207,31 +185,56 @@ function setTotal() {
   const planPriceValue = parseFloat(planPrice.innerHTML.replace(/\D/g, "")); // Get the numeric value of the plan price
   const addonPrices = document.querySelectorAll(".selected-addon .servic-price");
 
-  let totalPrice = planPriceValue; // Start with the plan price
+  let totalPrice = planPriceValue;
 
   addonPrices.forEach((priceElement) => {
     const addonPriceValue = parseFloat(priceElement.innerHTML.replace(/\D/g, ""));
     totalPrice += addonPriceValue; // Add each add-on price to the total
   });
 
-  // Display the total with two decimals and the correct time unit
-  total.innerHTML = `$${totalPrice.toFixed(2)}/${time ? "yr" : "mo"}`;
+  total.innerHTML = `$${totalPrice}/${time ? "yr" : "mo"}`;
 }
 
 function setTime(t) {
   return (time = t);
 }
 
-function calculateTotal() {
-  const planPriceValue = parseFloat(planPrice.innerHTML.replace(/\D/g, ""));
-  const addonPrices = document.querySelectorAll(".selected-addon .servic-price");
 
-  let totalPrice = planPriceValue;
+switcher.addEventListener("click", () => {
+  const val = switcher.querySelector("input").checked;
+  if (val) {
+    document.querySelector(".monthly").classList.remove("sw-active");
+    document.querySelector(".yearly").classList.add("sw-active");
+  } else {
+    document.querySelector(".monthly").classList.add("sw-active");
+    document.querySelector(".yearly").classList.remove("sw-active");
+  }
+  
+  // Uncheck all selected add-ons and remove them from the summary
+  resetAddOns();
 
-  addonPrices.forEach((priceElement) => {
-    const addonPriceValue = parseFloat(priceElement.innerHTML.replace(/\D/g, ""));
-    totalPrice += addonPriceValue;
+  // Update the pricing display and recalculate the total
+  switchPrice(val);
+  obj.kind = val;
+  setTotal(); // Recalculate the total after resetting add-ons
+});
+
+function resetAddOns() {
+  // Uncheck all add-ons
+  addons.forEach((addon) => {
+    const addonSelect = addon.querySelector("input");
+    const ID = addon.getAttribute("data-id");
+
+    if (addonSelect.checked) {
+      addonSelect.checked = false;
+      addon.classList.remove("ad-selected");
+      showAddon(ID, false); // Remove from summary
+    }
   });
 
-  return totalPrice;
+  // Clear add-on selections in the summary
+  const selectedAddons = document.querySelectorAll(".selected-addon");
+  selectedAddons.forEach((addon) => addon.remove());
 }
+
+// Existing functions like summary, validateForm, findLabel, plans event listeners, etc...
